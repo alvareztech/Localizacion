@@ -228,11 +228,11 @@ public class PrincipalActivity extends Activity {
 	 */
 
 	private void actualizarIU(Location localizacion) {
-		Message.obtain(handler, ACTUALIZAR_LATITUD, localizacion.getLatitude())
+		Message.obtain(handler, ACTUALIZAR_LATITUD, localizacion.getLatitude() + "")
 				.sendToTarget();
 
 		Message.obtain(handler, ACTUALIZAR_LONGITUD,
-				localizacion.getLongitude()).sendToTarget();
+				localizacion.getLongitude() + "").sendToTarget();
 
 		if (disponibleGeocoder) {
 			//doReverseGeocoding(localizacion);
