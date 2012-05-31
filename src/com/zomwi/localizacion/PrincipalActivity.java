@@ -1,13 +1,20 @@
 package com.zomwi.localizacion;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -70,7 +77,7 @@ public class PrincipalActivity extends Activity {
 
 		/*********************************************************/
 		// Geocoder
-		disponibleGeocoder = Build.VERSION.SDK_INT >= 9;
+		disponibleGeocoder = true; //Build.VERSION.SDK_INT >= 9;
 
 		// Handler
 		handler = new Handler() {
@@ -222,20 +229,22 @@ public class PrincipalActivity extends Activity {
 		configurar();
 	}
 
-	/*
-	 * private void doReverseGeocoding(Location location) { (new
-	 * ReverseGeocodingTask(this)).execute(new Location[] { location }); }
-	 */
+	/************************************************/
+	private void hacerGeocodificacionReversa(Location location) {
+		(new TareaGeocodificacionReversa(this))
+				.execute(new Location[] { location });
+	}
 
+	/************************************************/
 	private void actualizarIU(Location localizacion) {
-		Message.obtain(handler, ACTUALIZAR_LATITUD, localizacion.getLatitude() + "")
-				.sendToTarget();
+		Message.obtain(handler, ACTUALIZAR_LATITUD,
+				localizacion.getLatitude() + "").sendToTarget();
 
 		Message.obtain(handler, ACTUALIZAR_LONGITUD,
 				localizacion.getLongitude() + "").sendToTarget();
 
 		if (disponibleGeocoder) {
-			//doReverseGeocoding(localizacion);
+			hacerGeocodificacionReversa(localizacion);
 		}
 	}
 
@@ -313,6 +322,48 @@ public class PrincipalActivity extends Activity {
 			return provider2 == null;
 		}
 		return provider1.equals(provider2);
+	}
+
+	/***********************************************************/
+	private class TareaGeocodificacionReversa extends
+			AsyncTask<Location, Void, Void> {
+		Context mContext;
+
+		public TareaGeocodificacionReversa(Context context) {
+			super();
+			mContext = context;
+		}
+
+		@Override
+		protected Void doInBackground(Location... params) {
+			Geocoder geocoder = new Geocoder(mContext, Locale.getDefault());
+
+			Location loc = params[0];
+			List<Address> addresses = null;
+			try {
+				addresses = geocoder.getFromLocation(loc.getLatitude(),
+						loc.getLongitude(), 1);
+			} catch (IOException e) {
+				e.printStackTrace();
+				// Update address field with the exception.
+				Message.obtain(handler, ACTUALIZAR_DIRECCION, e.toString())
+						.sendToTarget();
+			}
+			if (addresses != null && addresses.size() > 0) {
+				Address address = addresses.get(0);
+				// Format the first line of address (if available), city, and
+				// country name.
+				String addressText = String.format(
+						"%s, %s, %s",
+						address.getMaxAddressLineIndex() > 0 ? address
+								.getAddressLine(0) : "", address.getLocality(),
+						address.getCountryName());
+				// Update address field on UI.
+				Message.obtain(handler, ACTUALIZAR_DIRECCION, addressText)
+						.sendToTarget();
+			}
+			return null;
+		}
 	}
 
 }
